@@ -1,4 +1,5 @@
 import socket
+import tkinter as tk
 import threading
 
 def ExtractMessage(data):
@@ -22,7 +23,8 @@ def ExtractMessage(data):
             sender_parts = sender_info.split("!")
             sender_name = sender_parts[0][1:]  # remove o ':' no início do nome do remetente
             message = message[1:]  # remova o ':' no início da mensagem
-            print(f"{sender_name} disse para {destination}: {message}", end="")
+            #print(f"{sender_name} disse para {destination}: {message}", end="")
+            AddMsgToViewArea(f"{sender_name} disse para {destination}: {message}")
     else:
         '''
         tratar os seguintes erros:
@@ -42,15 +44,15 @@ def ExtractMessage(data):
         501 - ERR_UMODEUNKNOWNFLAG: O modo de usuário especificado não é reconhecido.
         502 - ERR_USERSDONTMATCH: Os modos de usuário não coincidem.
         '''
-        print("data = ", data)
+        AddMsgToViewArea(data)
 
-def ConnectAndAuthenticate(socket, nick):
+def ConnectAndAuthenticate(irc, nick):
     # Envie as informações de login para o servidor
-    socket.send(f"USER {nick} 0 * :{nick}\r\n".encode())
-    socket.send(f"NICK {nick}\r\n".encode())
+    irc.send(f"USER {nick} 0 * :{nick}\r\n".encode())
+    irc.send(f"NICK {nick}\r\n".encode())
 
     while True:
-        data = socket.recv(2048).decode("UTF-8")
+        data = irc.recv(2048).decode("UTF-8")
         
         if len(data) <= 0:
             continue
@@ -60,21 +62,22 @@ def ConnectAndAuthenticate(socket, nick):
             break
 
         if "433" in data:
-            print("Nickname já está em uso!!!")
+            AddMsgToViewArea("Nickname já está em uso!!!")
             exit(0)
-    
     print("Conectado com sucesso")
 
-def JoinChannel(socket, channelName):
-    socket.send(f"JOIN :{channelName}\r\n".encode())
+def JoinChannel(irc, channelName):
+    irc.send(f"JOIN :{channelName}\r\n".encode())
 
     while True:
-        data = socket.recv(2048).decode("UTF-8")
+        data = irc.recv(2048).decode("UTF-8")
 
         if len(data) <= 0:
             continue
 
-        print(data)
+        #print(data)
+        AddMsgToViewArea(data)
+        
         '''
         if f"JOIN :{channelName}" in data:
             # entrou com sucesso!!
@@ -89,28 +92,62 @@ def JoinChannel(socket, channelName):
         if "End" in data and "/NAMES" in data:
             break
 
-    print(f"Entrou no canal {channelName} com sucesso")
+    #print(f"Entrou no canal {channelName} com sucesso")
+    AddMsgToViewArea(f"Entrou no canal {channelName} com sucesso")
 
-def SendMessage(source, sink, msg):
+def SendMessage(irc, source, sink, msg):
+    if not msg:
+        return
     # if sink[0] == '#': --> mensagem para um canal
-    print(f'{source} disse para {sink}: {msg}')
     irc.send(f"PRIVMSG {sink} :{msg}\r\n".encode())
+    AddMsgToViewArea(f'{source} disse para {sink}: {msg}')
+    inputArea.delete(0, tk.END)
 
-def ReadUserInputThenSendMessage():
+def SendMessageAux(event = None):
+    return SendMessage(irc, nickname, "#MeuCanal", inputArea.get())
+
+def AddMsgToViewArea(msg):
+    if msg[-1] != '\n':
+        msg = msg + '\n'
+    messages.append(msg)
+    messagesArea.config(state = tk.NORMAL)
+    messagesArea.insert(tk.END, msg)
+    messagesArea.config(state = tk.DISABLED)
+    messagesArea.see(tk.END)
     
-    # meu nick, destinatário, mensagem
-    # o nick já é 'fixo', correto? entao nao precisaria pedir aqui
-    # o destinatário pode ser usuário ou canal. Canal começa com '#'
-    # por fim a mensagem, qlq coisa
-
+def IRCLoop():
     while True:
-        data = input().split(" ")
-        if len(data) < 2:
-            print("Mensagem inválida")
-            continue
-        sink = data[0]
-        msg = " ".join(data[1:])
-        SendMessage(nickname, sink, msg)
+        data = irc.recv(2048).decode("UTF-8")
+        
+        if "PING" in data:
+            irc.send("PONG :pingis\r\n".encode()) 
+        
+        ExtractMessage(data)
+
+messages = []
+onlineUsers = []
+
+mainWindow = tk.Tk()
+mainWindow.title("PyChatIRC")
+mainWindow.geometry("1130x500")
+mainWindow.resizable(width = False, height = False)
+
+messagesArea = tk.Text(mainWindow, state = tk.DISABLED, height = 29, width = 115)
+messagesArea.grid(row = 0, column = 0, columnspan = 3, sticky = 'ew')
+
+inputArea = tk.Entry(mainWindow, width = 160)
+inputArea.grid(row = 2, column = 0, stick = 'ew')
+inputArea.bind("<Return>", SendMessageAux)
+
+#sendMessageButton = tk.Button(mainWindow, text = "Submit", command = SendMessageAux)
+#sendMessageButton.grid(row = 2, column = 1)
+
+onlineUsersArea = tk.Text(mainWindow, state = tk.DISABLED, height = 29, width = 20)
+onlineUsersArea.grid(row = 0, column = 4, columnspan = 1, sticky = 'ew')
+
+mainScroolBar = tk.Scrollbar(mainWindow, command = onlineUsersArea.yview)
+mainScroolBar.grid(row = 0, column = 5, stick = 'ns')
+onlineUsersArea.config(yscrollcommand = mainScroolBar.set)
 
 # Informações básicas a serem usadas
 server = "localhost"
@@ -125,13 +162,7 @@ irc.connect((server, port))
 ConnectAndAuthenticate(irc, nickname)
 JoinChannel(irc, channel)
 
-inputThread = threading.Thread(target = ReadUserInputThenSendMessage, daemon = True)
-inputThread.start()
+ircThread = threading.Thread(target = IRCLoop, daemon = True)
+ircThread.start()
 
-while True:
-    data = irc.recv(2048).decode("UTF-8")
-    
-    if "PING" in data:
-        irc.send("PONG :pingis\r\n".encode()) 
-    
-    ExtractMessage(data)
+mainWindow.mainloop()
