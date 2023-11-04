@@ -62,7 +62,7 @@ def ConnectAndAuthenticate(irc, nick):
             continue
 
         if "433" in data:
-            AddMsgToViewArea("Nickname já está em uso!!!")
+            print("Nickname já está em uso!!! Encerrando")
             exit(0)
     
         if "004" in data:
