@@ -9,14 +9,17 @@ def ExtractMessage(data):
 
     if "NOTICE" in data: 
         return
-    
-    if "JOIN" in data:
-        return
 
     if "MOTD" in data:
         return
 
-    if "PRIVMSG" in data:
+    if "JOIN" in data:
+        AddNameToUserArea(data[1 : data.find("!")] + "\n")
+
+    elif "QUIT" in data:
+        DeleteNameOfUserArea(data)
+
+    elif "PRIVMSG" in data:
         parts = data.split(" ", 3)
         if len(parts) >= 4:
             sender_info, message_type, destination, message = parts[0], parts[1], parts[2], parts[3]
@@ -44,6 +47,7 @@ def ExtractMessage(data):
         501 - ERR_UMODEUNKNOWNFLAG: O modo de usuário especificado não é reconhecido.
         502 - ERR_USERSDONTMATCH: Os modos de usuário não coincidem.
         '''
+        print(data + '\n')
         AddMsgToViewArea(data)
 
 def ConnectAndAuthenticate(irc, nick):
@@ -56,14 +60,15 @@ def ConnectAndAuthenticate(irc, nick):
         
         if len(data) <= 0:
             continue
-        
-        if "004" in data:
-            # Autenticado com sucesso, pode prosseguir
-            break
 
         if "433" in data:
             AddMsgToViewArea("Nickname já está em uso!!!")
             exit(0)
+    
+        if "004" in data:
+            # Autenticado com sucesso, pode prosseguir
+            break
+    
     print("Conectado com sucesso")
 
 def JoinChannel(irc, channelName):
@@ -78,22 +83,18 @@ def JoinChannel(irc, channelName):
         #print(data)
         AddMsgToViewArea(data)
         
-        '''
-        if f"JOIN :{channelName}" in data:
-            # entrou com sucesso!!
-            break
-        '''
-
-        # O servidor retorna o seguinte:
-        # o join do if acima
-        # a lista de usuários online
-        # e dps o END dessa lista, que é o if abaixo
-
-        if "End" in data and "/NAMES" in data:
+        if "353" in data:
+            arr = data.split("\n")[-3].split(":")
+            names = arr[-1].split(" ")
+            for nick in names:
+                if nick[-1] == '\r':
+                    nick = nick[:-1]
+                AddNameToUserArea(nick + '\n')
+            
+            # Autenticou com sucesso!!
             break
 
-    #print(f"Entrou no canal {channelName} com sucesso")
-    AddMsgToViewArea(f"Entrou no canal {channelName} com sucesso")
+    #AddMsgToViewArea(f"Entrou no canal {channelName} com sucesso")
 
 def SendMessage(irc, source, sink, msg):
     if not msg:
@@ -115,6 +116,35 @@ def AddMsgToViewArea(msg):
     messagesArea.config(state = tk.DISABLED)
     messagesArea.see(tk.END)
     
+def AddNameToUserArea(user):
+
+    #:Pessoa2!Pessoa2@localhost JOIN :#MeuCanal
+    onlineUsers.append(user)
+    onlineUsersArea.config(state = tk.NORMAL)
+    onlineUsersArea.insert(tk.END, user)
+    onlineUsersArea.config(state = tk.DISABLED)
+    onlineUsersArea.see(tk.END)
+
+def DeleteNameOfUserArea(user):
+    nick = user[1:user.find("!")] + "\n"
+
+    if onlineUsers.count(nick) == 0:
+        return
+
+    onlineUsers.remove(nick)
+
+    # Limpe o conteúdo atual de onlineUsersArea
+    onlineUsersArea.config(state=tk.NORMAL)
+    onlineUsersArea.delete(1.0, tk.END)
+
+    # Adicione todos os usuários online novamente
+    for online_user in onlineUsers:
+        onlineUsersArea.insert(tk.END, online_user)
+
+    onlineUsersArea.config(state=tk.DISABLED)
+    onlineUsersArea.see(tk.END)
+
+
 def IRCLoop():
     while True:
         data = irc.recv(2048).decode("UTF-8")
