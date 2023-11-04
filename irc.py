@@ -105,7 +105,19 @@ def SendMessage(irc, source, sink, msg):
     inputArea.delete(0, tk.END)
 
 def SendMessageAux(event = None):
-    return SendMessage(irc, nickname, "#MeuCanal", inputArea.get())
+
+    # Here We need to know if it is a group message or it is a private message
+    # the difference is /PRIVMSG commando
+
+    data = inputArea.get()
+
+    if "/PRIVMSG" == data.split()[0]:
+        # It is a private msg
+        user = data.split(" ")[1]
+        msg = " ".join(data.split()[2:])
+        return SendMessage(irc, nickname, user, msg)
+    else:
+        return SendMessage(irc, nickname, channel, data)
 
 def AddMsgToViewArea(msg):
     if msg[-1] != '\n':
@@ -137,13 +149,12 @@ def DeleteNameOfUserArea(user):
     onlineUsersArea.config(state=tk.NORMAL)
     onlineUsersArea.delete(1.0, tk.END)
 
-    # Adicione todos os usuários online novamente
+    # Adiciona todos os usuários online novamente
     for online_user in onlineUsers:
         onlineUsersArea.insert(tk.END, online_user)
 
     onlineUsersArea.config(state=tk.DISABLED)
     onlineUsersArea.see(tk.END)
-
 
 def IRCLoop():
     while True:
@@ -169,9 +180,6 @@ inputArea = tk.Entry(mainWindow, width = 160)
 inputArea.grid(row = 2, column = 0, stick = 'ew')
 inputArea.bind("<Return>", SendMessageAux)
 
-#sendMessageButton = tk.Button(mainWindow, text = "Submit", command = SendMessageAux)
-#sendMessageButton.grid(row = 2, column = 1)
-
 onlineUsersArea = tk.Text(mainWindow, state = tk.DISABLED, height = 29, width = 20)
 onlineUsersArea.grid(row = 0, column = 4, columnspan = 1, sticky = 'ew')
 
@@ -183,7 +191,7 @@ onlineUsersArea.config(yscrollcommand = mainScroolBar.set)
 server = "localhost"
 port = 6667
 channel = "#MeuCanal"
-nickname = "PythonUser4"
+nickname = "PyChatIRC"
 
 # Crie um socket e conecta ao servidor IRC local
 irc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
