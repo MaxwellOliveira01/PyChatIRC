@@ -29,24 +29,6 @@ def ExtractMessage(data):
             #print(f"{sender_name} disse para {destination}: {message}", end="")
             AddMsgToViewArea(f"{sender_name} disse para {destination}: {message}")
     else:
-        '''
-        tratar os seguintes erros:
-        401 - ERR_NOSUCHNICK: O apelido especificado não foi encontrado no servidor.
-        403 - ERR_NOSUCHCHANNEL: O canal especificado não foi encontrado no servidor.
-        404 - ERR_CANNOTSENDTOCHAN: Não é possível enviar mensagens para o canal especificado (geralmente devido a restrições ou configurações específicas do canal).
-        405 - ERR_TOOMANYCHANNELS: O usuário já está em muitos canais e não pode entrar em mais um.
-        406 - ERR_WASNOSUCHNICK: O apelido ao qual se está respondendo não foi encontrado no servidor.
-        407 - ERR_TOOMANYTARGETS: Muitos destinos foram especificados na mesma mensagem.
-        471 - ERR_CHANNELISFULL: O canal está cheio e não é possível entrar.
-        473 - ERR_INVITEONLYCHAN: O canal é somente para convidados e o usuário não tem permissão para entrar sem um convite.
-        474 - ERR_BANNEDFROMCHAN: O usuário está banido do canal e não pode entrar.
-        475 - ERR_BADCHANNELKEY: A senha do canal especificada está incorreta.
-        481 - ERR_NOPRIVILEGES: O usuário não tem privilégios suficientes para executar a ação desejada.
-        482 - ERR_CHANOPRIVSNEEDED: São necessários privilégios de operador do canal (channel operator) para executar a ação desejada.
-        483 - ERR_CANTKILLSERVER: Não é permitido desconectar o servidor ou matar a conexão do servidor.
-        501 - ERR_UMODEUNKNOWNFLAG: O modo de usuário especificado não é reconhecido.
-        502 - ERR_USERSDONTMATCH: Os modos de usuário não coincidem.
-        '''
         print(data + '\n')
         AddMsgToViewArea(data)
 
