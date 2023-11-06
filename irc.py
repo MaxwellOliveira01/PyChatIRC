@@ -14,6 +14,7 @@ def ExtractMessage(data):
         return
 
     if "JOIN" in data:
+        print("to no join " + data[1 : data.find("!")])
         AddNameToUserArea(data[1 : data.find("!")] + "\n")
 
     elif "QUIT" in data:
@@ -69,8 +70,13 @@ def JoinChannel(irc, channelName):
             arr = data.split("\n")[-3].split(":")
             names = arr[-1].split(" ")
             for nick in names:
+                
                 if nick[-1] == '\r':
                     nick = nick[:-1]
+
+                if nick[0] == '@':
+                    nick = nick[1:]
+                
                 AddNameToUserArea(nick + '\n')
             
             # Autenticou com sucesso!!
